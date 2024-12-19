@@ -15,7 +15,9 @@ class button():
         self.sw = None
         self.button_init()
         self.last_check_tick = ticks_ms()
-        self.debounce_time = 20
+        self.debounce_cycle = 1
+        self.threshold_1 = 12    # threshold between short press and long press
+        self.threshold_2 = 60    # threshold between long press and continuous press
 
     def __SWx_Process(self):
 
@@ -26,28 +28,32 @@ class button():
         self.sw.irq(lambda pin : self.__SWx_Process(), Pin.IRQ_RISING)
 
     def update(self):
-        current_tick = ticks_ms()
-        if self.pressed: 
+        if self.pressed:
+            # state check
             if self.sw.value() == 1:
+                # Period calculation
                 self.pre_count = self.pre_count+1
-                if self.con_flag == 0 and self.pre_count >= 60:
+                # 
+                if self.con_flag == 0 and self.pre_count >= self.threshold_2:
                     self.con_flag = 1
                     self.signal = self.sw_name+"_C_ON"
-            elif self.pre_count <= 12:
-                self.signal = self.sw_name+"_S"
+            else:
+                # Recognize key mode
+                # three different mode: short press, long_press, continuous_press
+                if self.pre_count <= self.threshold_1:
+                    self.signal = self.sw_name+"_S"
+                elif self.threshold_1 < self.pre_count and self.pre_count < self.threshold_2:
+                    self.signal = self.sw_name+"_L"
+                elif self.pre_count >= self.threshold_2:
+                    self.signal = self.sw_name+"_C_OFF"
+                else:
+                    print("Unexcept ERROR!")
+                
+                # reset register
                 self.pressed = 0
                 self.pre_count = 0
                 self.con_flag = 0
-            elif 12 < self.pre_count and self.pre_count < 60:
-                self.signal = self.sw_name+"_L"
-                self.pressed = 0
-                self.pre_count = 0
-                self.con_flag = 0
-            elif self.pre_count >= 60:
-                self.signal = self.sw_name+"_C_OFF"
-                self.pressed = 0
-                self.pre_count = 0
-                self.con_flag = 0
+                    
     
     def get_signal(self):
         self.update()
@@ -97,6 +103,15 @@ class button_sys:
         self.signal_list.clear()
         return signal_set
         
+            
+
+
+
+
+    
+
+        
+
             
 
 
